@@ -2,6 +2,7 @@
 <html lang="he">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>הסוללה החברתית שלי</title>
   <style>
     body {
@@ -33,7 +34,7 @@
     #fill {
       height: 100%;
       width: 0%;
-      border-radius: 6px;
+      border-radius: 6px 0 0 6px;
     }
     #status {
       margin-top: 20px;
@@ -49,6 +50,7 @@
   <div id="battery">
     <div id="fill"></div>
   </div>
+  <p id="percent"></p>
   <p id="status">בודק מצב...</p>
   <input type="range" id="slider" min="0" max="100" value="100">
   <div id="share-link"></div>
@@ -56,51 +58,68 @@
   <script>
     const fill = document.getElementById("fill");
     const status = document.getElementById("status");
+    const percentText = document.getElementById("percent");
     const slider = document.getElementById("slider");
     const shareDiv = document.getElementById("share-link");
 
-    const messages = [
-      "0% - התרחקו ממני או שתצטערו...",
-      "10% - אני מדבר רק עם כלבים עכשיו",
-      "20% - אולי אגיד שלום, אבל בלי עין בעין",
-      "30% - זורק חיוכים מזויפים מרחוק",
-      "40% - מדבר, אבל רק אם משלמים לי בקפה",
-      "50% - נו טוב, אני כבר פה...",
-      "60% - אפשר לנהל שיחה של עד 3 דקות",
-      "70% - יחסית סבבה! אפשר מינגלינג",
-      "80% - תביאו את השיחות העמוקות!",
-      "90% - רוקד באמצע הרחוב עם זרים",
-      "100% - כוכב מסיבות! תרקדו איתי!"
-    ];
+    // הודעות משתנות בהתאם לרמת הסוללה (כל 10 אחוז)
+    const messages = {
+      0: "0% - אין סוללה. הלך לטעינה עצמית.",
+      10: "10% - אני מדבר רק עם כלבים עכשיו.",
+      20: "20% - אולי אגיד שלום, אבל בלי עין בעין.",
+      30: "30% - זורק חיוכים מזויפים מרחוק.",
+      40: "40% - מדבר, אבל רק אם משלמים לי בקפה.",
+      50: "50% - נו טוב, אני כבר פה...",
+      60: "60% - אפשר לנהל שיחה של עד 3 דקות.",
+      70: "70% - יחסית סבבה! אפשר מינגלינג.",
+      80: "80% - תביאו את השיחות העמוקות!",
+      90: "90% - רוקד באמצע הרחוב עם זרים.",
+      100: "100% - כוכב מסיבות! תרקדו איתי!"
+    };
 
+    // פונקציית עדכון תצוגת הסוללה והסטטוס
     function updateBattery(percent) {
       fill.style.width = percent + "%";
-      fill.style.backgroundColor = percent < 30 ? "#e74c3c" : percent < 60 ? "#f1c40f" : "#2ecc71";
-
-      let index = Math.floor(percent / 10);
-      if (index > 10) index = 10;
-      status.innerText = messages[index];
+      percentText.innerText = percent + "%";
+      // עדכון הצבע לפי רמת הסוללה
+      if (percent < 30) {
+        fill.style.backgroundColor = "#e74c3c"; // אדום
+      } else if (percent < 60) {
+        fill.style.backgroundColor = "#f1c40f"; // צהוב
+      } else {
+        fill.style.backgroundColor = "#2ecc71"; // ירוק
+      }
+      
+      // חלוקה עשרונית: עיגול כל 10 אחוזים
+      let index = Math.floor(percent / 10) * 10;
+      if (index > 100) index = 100;
+      status.innerText = messages[index] || "";
     }
 
+    // עדכון קישור השיתוף עם הפרמטר battery ושמירה ב-localStorage
+    function updateShareLink(value) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("battery", value);
+      // עדכון כתובת הדף בכתובת URL (ללא ריענון הדף) כדי שהקישור ישאר עדכני\n
+      window.history.replaceState({}, '', url);
+      shareDiv.innerHTML = `<p>שתף חברים: <a href="${url.toString()}" target="_blank">${url.toString()}</a></p>`;
+      localStorage.setItem("socialBattery", value);
+    }
+
+    // מאזין לשינוי Slider
     slider.addEventListener("input", () => {
       const value = slider.value;
-      localStorage.setItem("socialBattery", value);
       updateBattery(value);
       updateShareLink(value);
     });
 
-    function updateShareLink(value) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("battery", value);
-      shareDiv.innerHTML = `<p>שתף חברים: <a href="${url.toString()}" target="_blank">${url.toString()}</a></p>`;
-    }
-
+    // בעת טעינת הדף, נבדוק אם קיימת הגדרה ב-URL או ב-localStorage ונעדכן את מצב הסוללה בהתאם
     window.onload = () => {
       let batteryValue = new URLSearchParams(window.location.search).get("battery") || localStorage.getItem("socialBattery") || 100;
       slider.value = batteryValue;
       updateBattery(batteryValue);
       updateShareLink(batteryValue);
-    }
+    };
   </script>
 </body>
 </html>
